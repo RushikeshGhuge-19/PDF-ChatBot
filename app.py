@@ -31,7 +31,7 @@ st.markdown("""
 def load_models():
     qa_tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-base")
     qa_model = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-base")
-    embed_model = SentenceTransformer("BAAI/bge-small-en-v1.5")
+    embed_model = SentenceTransformer("BAAI/bge-base-en-v1.5")
     return qa_tokenizer, qa_model, embed_model
 
 tokenizer, model, embedder = load_models()
@@ -76,7 +76,7 @@ def generate_answer(query, context):
     outputs = model.generate(**inputs, max_new_tokens=200)
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-st.title("📄💬 PDF Chatbot (Dark Mode + FLAN-T5 Base)")
+st.title("📄💬 PDF Chatbot (Accurate RAG, Dark Mode)")
 uploaded_file = st.file_uploader("Upload a PDF", type=["pdf"])
 
 if uploaded_file:
