@@ -7,10 +7,8 @@ import fitz  # PyMuPDF
 import faiss
 import numpy as np
 
-# Streamlit page config with dark theme style tweaks
 st.set_page_config(page_title="PDF Chatbot", layout="centered", initial_sidebar_state="collapsed")
 
-# Apply dark theme tweaks
 st.markdown("""
     <style>
     .main { background-color: #0e1117; color: white; }
@@ -31,9 +29,9 @@ st.markdown("""
 
 @st.cache_resource
 def load_models():
-    qa_tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-small")
-    qa_model = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-small")
-    embed_model = SentenceTransformer("all-MiniLM-L6-v2")
+    qa_tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-base")
+    qa_model = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-base")
+    embed_model = SentenceTransformer("BAAI/bge-small-en-v1.5")
     return qa_tokenizer, qa_model, embed_model
 
 tokenizer, model, embedder = load_models()
@@ -61,18 +59,24 @@ def build_faiss(chunks):
     index.add(np.array(embeddings))
     return index, embeddings
 
-def get_top_k_chunks(query, chunks, index, k=3):
+def get_top_k_chunks(query, chunks, index, k=5):
     q_emb = embedder.encode([query])
     D, I = index.search(np.array(q_emb), k)
     return [chunks[i] for i in I[0]]
 
 def generate_answer(query, context):
-    prompt = f"Answer the question based on the context:\n\nContext: {context}\n\nQuestion: {query}"
+    prompt = f"""You are a helpful assistant. Use the following context to answer the question accurately. 
+    If the answer is not in the context, say 'I don't know'.
+
+    Context: {context}
+
+    Question: {query}
+    Answer:"""
     inputs = tokenizer(prompt, return_tensors="pt", max_length=512, truncation=True)
-    outputs = model.generate(**inputs, max_new_tokens=100)
+    outputs = model.generate(**inputs, max_new_tokens=200)
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-st.title("📄💬 PDF Chatbot (Dark Mode)")
+st.title("📄💬 PDF Chatbot (Dark Mode + FLAN-T5 Base)")
 uploaded_file = st.file_uploader("Upload a PDF", type=["pdf"])
 
 if uploaded_file:
@@ -86,6 +90,8 @@ if uploaded_file:
     if st.button("Get Answer") and query:
         top_chunks = get_top_k_chunks(query, chunks, index)
         context = " ".join(top_chunks)
+        st.markdown("**Retrieved Context:**")
+        st.code("\n---\n".join(top_chunks))
         answer = generate_answer(query, context)
         st.markdown("**Answer:**")
         st.success(answer)
