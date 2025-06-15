@@ -3,7 +3,6 @@ import fitz  # PyMuPDF
 import faiss
 import numpy as np
 import requests
-import os
 from sentence_transformers import SentenceTransformer
 
 # -- Streamlit UI Setup --
@@ -52,7 +51,7 @@ def chunk_text(text, max_tokens=200):
         chunks.append(chunk.strip())
     return chunks
 
-# -- FAISS Index --
+# -- FAISS Indexing --
 def build_faiss(chunks):
     embeddings = embedder.encode(chunks)
     index = faiss.IndexFlatL2(embeddings.shape[1])
@@ -64,9 +63,7 @@ def get_top_k_chunks(query, chunks, index, k=5):
     D, I = index.search(np.array(q_emb), k)
     return [chunks[i] for i in I[0]]
 
-# -- OpenRouter API-based Answer Generation --
-import requests
-
+# -- OpenRouter API Answer Generation --
 def generate_answer(query, context, api_key):
     if not context.strip():
         return "❌ No relevant context found in the document."
@@ -88,7 +85,7 @@ Answer:"""
     }
 
     payload = {
-        "model": "mistralai/mistral-7b-instruct",  # you can change this to another model if needed
+        "model": "mistralai/mistral-7b-instruct",
         "messages": [
             {"role": "user", "content": prompt}
         ],
@@ -104,10 +101,9 @@ Answer:"""
     except Exception as e:
         return f"❌ Exception: {str(e)}"
 
-# -- Streamlit UI Logic --
+# -- Streamlit App UI Logic --
 st.title("📄💬 PDF Chatbot — Powered by OpenRouter API")
 api_key = st.text_input("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", type="password")
-
 uploaded_file = st.file_uploader("📎 Upload a PDF", type=["pdf"])
 
 if uploaded_file and api_key:
@@ -118,18 +114,15 @@ if uploaded_file and api_key:
         st.success("✅ PDF processed!")
 
     query = st.text_input("💬 Ask a question from the PDF:")
-  if st.button("Get Answer") and query:
-     if not api_key:
-            st.error("Please enter your OpenRouter API key.")
-    else:
-            top_chunks = get_top_k_chunks(query, chunks, index)
-            context = " ".join(top_chunks)
-            
-            st.markdown("### 🔍 Retrieved Context")
-            st.code("\n---\n".join(top_chunks))  # Shows chunks for transparency
-            
-        with st.spinner("Generating answer..."):
+    if st.button("Get Answer") and query:
+        top_chunks = get_top_k_chunks(query, chunks, index)
+        context = " ".join(top_chunks)
+
+        st.markdown("### 🔍 Retrieved Context")
+        st.code("\n---\n".join(top_chunks))
+
+        with st.spinner("🧠 Generating answer..."):
             answer = generate_answer(query, context, api_key)
-            
-            st.markdown("### 💬 Answer")
-            st.success(answer)
+
+        st.markdown("### 💬 Answer")
+        st.success(answer)
