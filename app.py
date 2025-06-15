@@ -65,7 +65,12 @@ def get_top_k_chunks(query, chunks, index, k=5):
     return [chunks[i] for i in I[0]]
 
 # -- OpenRouter API-based Answer Generation --
+import requests
+
 def generate_answer(query, context, api_key):
+    if not context.strip():
+        return "❌ No relevant context found in the document."
+
     prompt = f"""You are a helpful assistant. Use the following context to answer the user's question.
 If the answer is not in the context, say "I don't know".
 
@@ -82,17 +87,22 @@ Answer:"""
         "Content-Type": "application/json"
     }
 
-    data = {
-        "model": "mistralai/mistral-7b-instruct",  # You can also try "meta-llama/llama-3-8b-instruct"
-        "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 300
+    payload = {
+        "model": "mistralai/mistral-7b-instruct",  # you can change this to another model if needed
+        "messages": [
+            {"role": "user", "content": prompt}
+        ],
+        "max_tokens": 300,
     }
 
-    res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
-    if res.status_code == 200:
-        return res.json()["choices"][0]["message"]["content"]
-    else:
-        return f"Error: {res.status_code} - {res.text}"
+    try:
+        res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
+        if res.status_code == 200:
+            return res.json()["choices"][0]["message"]["content"]
+        else:
+            return f"❌ API Error {res.status_code}: {res.text}"
+    except Exception as e:
+        return f"❌ Exception: {str(e)}"
 
 # -- Streamlit UI Logic --
 st.title("📄💬 PDF Chatbot — Powered by OpenRouter API")
@@ -108,12 +118,18 @@ if uploaded_file and api_key:
         st.success("✅ PDF processed!")
 
     query = st.text_input("💬 Ask a question from the PDF:")
-    if st.button("🧠 Get Answer") and query:
+  if st.button("Get Answer") and query:
+    if not api_key:
+        st.error("Please enter your OpenRouter API key.")
+    else:
         top_chunks = get_top_k_chunks(query, chunks, index)
         context = " ".join(top_chunks)
-        st.markdown("📚 *Retrieved Context:*")
-        st.code("\n---\n".join(top_chunks))
-        with st.spinner("🤖 Generating answer..."):
+        
+        st.markdown("### 🔍 Retrieved Context")
+        st.code("\n---\n".join(top_chunks))  # Shows chunks for transparency
+        
+        with st.spinner("Generating answer..."):
             answer = generate_answer(query, context, api_key)
-            st.markdown("✅ *Answer:*")
-            st.success(answer)
+        
+        st.markdown("### 💬 Answer")
+        st.success(answer)
