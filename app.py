@@ -119,17 +119,17 @@ if uploaded_file and api_key:
 
     query = st.text_input("💬 Ask a question from the PDF:")
   if st.button("Get Answer") and query:
-    if not api_key:
-        st.error("Please enter your OpenRouter API key.")
+     if not api_key:
+            st.error("Please enter your OpenRouter API key.")
     else:
-        top_chunks = get_top_k_chunks(query, chunks, index)
-        context = " ".join(top_chunks)
-        
-        st.markdown("### 🔍 Retrieved Context")
-        st.code("\n---\n".join(top_chunks))  # Shows chunks for transparency
-        
+            top_chunks = get_top_k_chunks(query, chunks, index)
+            context = " ".join(top_chunks)
+            
+            st.markdown("### 🔍 Retrieved Context")
+            st.code("\n---\n".join(top_chunks))  # Shows chunks for transparency
+            
         with st.spinner("Generating answer..."):
             answer = generate_answer(query, context, api_key)
-        
-        st.markdown("### 💬 Answer")
-        st.success(answer)
+            
+            st.markdown("### 💬 Answer")
+            st.success(answer)
