@@ -96,7 +96,7 @@ Answer:"""
 
 # -- Streamlit UI Logic --
 st.title("📄💬 PDF Chatbot — Powered by OpenRouter API")
-api_key = st.text_input("🔑 Enter your OpenRouter API Key", type="password")
+api_key = st.text_input("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", type="password")
 
 uploaded_file = st.file_uploader("📎 Upload a PDF", type=["pdf"])
 
